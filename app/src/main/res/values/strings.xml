@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">TemaMood Tracker</string>
+    <string name="affinity_points">Rep:</string>
+    <string name="Save">Сохранить</string>
+</resources>
