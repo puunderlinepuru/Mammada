@@ -1,28 +1,41 @@
 package com.pupuru.mammada
 
 import android.content.Context
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -30,15 +43,20 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -130,7 +148,7 @@ fun MammadaTrackerStaticBase(modifier: Modifier = Modifier) {
         )
         Image(
             modifier = Modifier.size(300.dp),
-            painter = painterResource(R.drawable.tema),
+            painter = painterResource(R.drawable.mammada),
             contentDescription = "that's me"
         )
         MovingElements(firstTimeRead, readLinesVector)
@@ -161,7 +179,7 @@ fun ReputationSlider() {
 
 @Composable
 fun ReputationComments() {
-    var commentContents by remember { mutableStateOf(globalCommentContents) }
+    var commentContents by remember { mutableStateOf("") }
     globalCommentContents = commentContents
 
     OutlinedTextField(
@@ -170,25 +188,76 @@ fun ReputationComments() {
             commentContents = it
             println("new commentContents = $commentContents")
                          },
-        label = { Text("Enter text") },
+        label = { Text("Комментарий") },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 40.dp)
-            .wrapContentHeight()
+            .wrapContentHeight(),
+        textStyle = TextStyle(color = Color.Black)
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomSheet(reputationHistory: Vector<String>) {
-//    ModalBottomSheet() { }
+    var openBottomSheet by rememberSaveable { mutableStateOf(false) }
+    var skipPartiallyExpanded by rememberSaveable { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val bottomSheetState =
+        rememberModalBottomSheetState(skipPartiallyExpanded = skipPartiallyExpanded)
+    // App content
+
+    Button(
+        onClick = { openBottomSheet = !openBottomSheet }
+    ) {
+        Text(
+            stringResource(R.string.ShowHistoryButton),
+
+        )
+    }
+    // Sheet content
+    if (openBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { openBottomSheet = false },
+            sheetState = bottomSheetState,
+        ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                Button(
+                    // Note: If you provide logic outside of onDismissRequest to remove the sheet,
+                    // you must additionally handle intended state cleanup, if any.
+                    onClick = {
+                        scope
+                            .launch { bottomSheetState.hide() }
+                            .invokeOnCompletion {
+                                if (!bottomSheetState.isVisible) {
+                                    openBottomSheet = false
+                                }
+                            }
+                    }
+                ) {
+                    Text(stringResource(R.string.HideHistoryButton))
+                }
+            }
+            LazyColumn (reverseLayout = true) {
+                items(reputationHistory.size) {
+                    ListItem(
+                        headlineContent = { Text("${reputationHistory[it]}") },
+                        colors =
+                            ListItemDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                            ),
+                    )
+                }
+            }
+        }
+    }
+
 }
 
 
 @Composable
 fun MovingElements(finalReputation: Int, reputationHistory: Vector<String>) {
 
-    var reputationChangeData = arrayOf("", "")
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -196,11 +265,11 @@ fun MovingElements(finalReputation: Int, reputationHistory: Vector<String>) {
 
     Text(
         modifier = Modifier,
-        text = "Rep: $reputationInt%\n" +
-            "Reason: $",
+        text = "Rep: $reputationInt%\n",
         fontFamily = abyssinicaFamily,
         fontSize = 20.sp
     )
+
     Spacer(modifier = Modifier.height(80.dp))
 
     ReputationSlider()
@@ -210,10 +279,6 @@ fun MovingElements(finalReputation: Int, reputationHistory: Vector<String>) {
 
         val filename = "myfile.txt"
         val reputationString = "${reputationInt + globalReputationChange}"
-
-//        ??
-//        reputationChangeData[0] = reputation
-//        reputationChangeData[1] = globalCommentContents
 
         if (reputationHistory.size >= 10) {
             reputationHistory.removeAt(0)
@@ -266,8 +331,8 @@ fun MovingElements(finalReputation: Int, reputationHistory: Vector<String>) {
             println("removed final reputation, vector is now: $reputationHistory")
         }
     }) {
-        Text(stringResource(R.string.Save))
+        Text(stringResource(R.string.SaveButton))
     }
 
-
+    BottomSheet(reputationHistory)
 }

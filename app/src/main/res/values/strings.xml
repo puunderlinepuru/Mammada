@@ -1,5 +1,7 @@
 <resources>
-    <string name="app_name">TemaMood Tracker</string>
+    <string name="app_name">MammadaMood Tracker</string>
     <string name="affinity_points">Rep:</string>
-    <string name="Save">Сохранить</string>
+    <string name="SaveButton">Сохранить</string>
+    <string name="ShowHistoryButton">История</string>
+    <string name="HideHistoryButton">Скрыть</string>
 </resources>
