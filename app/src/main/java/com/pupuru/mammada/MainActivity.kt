@@ -42,7 +42,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.IOException
 import kotlin.math.roundToInt
+import kotlin.text.toInt
 
+var reputationChange = 0
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,7 +52,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MammadaTheme {
-                DiceRollerApp()
+                MammadaTrackerApp()
             }
         }
     }
@@ -58,37 +60,32 @@ class MainActivity : ComponentActivity() {
 
 @Preview(showBackground = true)
 @Composable
-fun DiceRollerApp() {
-    DiceWithButtonAndImage(modifier = Modifier
+fun MammadaTrackerApp() {
+    MammadaTrackerStaticBase(modifier = Modifier
         .fillMaxSize()
         .wrapContentSize(Alignment.Center)
     )
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DiceWithButtonAndImage(modifier: Modifier = Modifier) {
+fun MammadaTrackerStaticBase(modifier: Modifier = Modifier) {
     val abrilFamily = FontFamily(
         Font(R.font.abril_fatface, FontWeight.Normal)
     )
-    val abyssinicaFamily = FontFamily(
-        Font(R.font.abyssinica_sil, weight = FontWeight.Normal)
-    )
+
 
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var firstTimeRead = 0;
+    var firstTimeRead = 0
     try {
         context.openFileInput("myfile.txt").use { fis ->
             val readString = fis.bufferedReader().use { it.readText() }
-            println("first time read: $firstTimeRead")
             firstTimeRead = readString.toInt()
+            println("first time read: $firstTimeRead")
         }
     } catch (e: IOException) {
         Log.e("DiceApp", "Failed to read file", e)
     }
-    var affinity by remember { mutableIntStateOf(firstTimeRead) }
 
-    var sliderPosition by remember { mutableFloatStateOf(50f) }
 
     Column(
         modifier = modifier,
@@ -109,54 +106,83 @@ fun DiceWithButtonAndImage(modifier: Modifier = Modifier) {
             painter = painterResource(R.drawable.tema),
             contentDescription = "that's me"
         )
-        Text(
-            modifier = Modifier,
-            text = "Rep: $affinity%",
-            fontFamily = abyssinicaFamily,
-            fontSize = 20.sp
-        )
-        Spacer(modifier = Modifier.height(80.dp))
+        MovingElements(firstTimeRead)
+    }
+}
 
-        Slider(
-            modifier = Modifier.padding(horizontal = 25.dp),
-            value = sliderPosition,
+@Composable
+fun ReputationSlider() {
+    var sliderPosition by remember { mutableFloatStateOf(50f) }
+    Slider(
+        modifier = Modifier.padding(horizontal = 25.dp),
+        value = sliderPosition,
 //            steps = 9,
 //            onValueChange = {sliderPosition = it},
-            onValueChange = {sliderPosition = it.roundToInt().toFloat() },
-            valueRange = 0f..100f
-        )
-        Text(
-            modifier = Modifier,
-            text = "${sliderPosition.toInt()-50}%"
-        )
-        Button(onClick = {
-            val previousContents = affinity
-            affinity = sliderPosition.toInt()-50
-            sliderPosition = 50f
+        onValueChange = {
+            sliderPosition = it.roundToInt().toFloat() },
+        onValueChangeFinished = {
+            reputationChange = sliderPosition.toInt() - 50
+            println("slider stopped moving, reputation changed to: $reputationChange")
+        },
+        valueRange = 0f..100f
+    )
+    Text(
+        modifier = Modifier,
+        text = "${sliderPosition.toInt()-50}%"
+    )
+}
 
-            val filename = "myfile.txt"
-            val fileContents = "${previousContents + affinity}"
+@Composable
+fun MovingElements(firstTimeRead: Int) {
+    val abyssinicaFamily = FontFamily(
+        Font(R.font.abyssinica_sil, weight = FontWeight.Normal)
+    )
 
-            scope.launch(Dispatchers.IO) {
-                try {
-                    context.openFileOutput(filename, Context.MODE_PRIVATE).use { fos ->
-                        fos.write(fileContents.toByteArray())
-                    }
-                } catch (e: IOException) {
-                    Log.e("DiceApp", "Failed to write file", e)
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    var affinity by remember { mutableIntStateOf(firstTimeRead) }
+
+    Text(
+        modifier = Modifier,
+        text = "Rep: $affinity%",
+        fontFamily = abyssinicaFamily,
+        fontSize = 20.sp
+    )
+    Spacer(modifier = Modifier.height(80.dp))
+
+    ReputationSlider()
+
+    Button(onClick = {
+        val previousContents = affinity
+//            sliderPosition = 50f
+
+        val filename = "myfile.txt"
+        val fileContents = "${previousContents + reputationChange}"
+
+        scope.launch(Dispatchers.IO) {
+//            WRITE
+            try {
+                context.openFileOutput(filename, Context.MODE_PRIVATE).use { fos ->
+                    fos.write(fileContents.toByteArray())
                 }
-                try {
-                    context.openFileInput(filename).use { fis ->
-                        val readString = fis.bufferedReader().use { it.readText() }
-                        println(readString)
-                        affinity = readString.toInt()
-                    }
-                } catch (e: IOException) {
-                    Log.e("DiceApp", "Failed to read file", e)
-                }
+            } catch (e: IOException) {
+                Log.e("DiceApp", "Failed to write file", e)
             }
-        }) {
-            Text(stringResource(R.string.Save))
+
+//            READ
+            try {
+                context.openFileInput(filename).use { fis ->
+//                        val readString = fis.bufferedReader().use { it.readLines() }
+                    val readString = fis.bufferedReader().use { it.readText() }
+                    affinity = readString.toInt()
+                    println("affinity is now: $affinity")
+                }
+            } catch (e: IOException) {
+                Log.e("DiceApp", "Failed to read file", e)
+            }
         }
+    }) {
+        Text(stringResource(R.string.Save))
     }
 }
