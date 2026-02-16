@@ -1,5 +1,6 @@
 package com.pupuru.mammada
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.drawable.Drawable
 import android.os.Bundle
@@ -99,36 +100,41 @@ fun MammadaTrackerApp() {
         .wrapContentSize(Alignment.Center)
     )
 }
+@SuppressLint("CoroutineCreationDuringComposition")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MammadaTrackerStaticBase(modifier: Modifier = Modifier) {
 
 //    FIRST TIME READ
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var firstTimeRead = 0
     var readLinesVector = Vector<String>()
-    try {
-        context.openFileInput("myfile.txt").use { fis ->
+    scope.launch(Dispatchers.IO) {
+        try {
+            context.openFileInput("myfile.txt").use { fis ->
 //            var readString = fis.bufferedReader().use { it.readText() }
 //            firstTimeRead = readString.toInt()
 //            println("first time read: $firstTimeRead")
 
-            fis.bufferedReader().use {
-                bufferedReader ->
-                bufferedReader.forEachLine { line ->
-                    readLinesVector.add(line)
-                    println("Added Line \" $line\" to vector")
+                fis.bufferedReader().use {
+                        bufferedReader ->
+                    bufferedReader.forEachLine { line ->
+                        readLinesVector.add(line)
+                        println("Added Line \" $line\" to vector")
+                    }
                 }
             }
+
+            firstTimeRead = readLinesVector.firstElement().toInt()
+
+            readLinesVector.removeElementAt(0)
+            println("removed final reputation, vecor is now: $readLinesVector")
+        } catch (e: IOException) {
+            Log.e("DiceApp", "Failed to read file", e)
         }
-
-        firstTimeRead = readLinesVector.firstElement().toInt()
-
-        readLinesVector.removeElementAt(0)
-        println("removed final reputation, vecor is now: $readLinesVector")
-    } catch (e: IOException) {
-        Log.e("DiceApp", "Failed to read file", e)
     }
+
 
 
 
@@ -187,7 +193,7 @@ fun ReputationComments() {
         onValueChange =  {
             commentContents = it
             println("new commentContents = $commentContents")
-                         },
+        },
         label = { Text("Комментарий") },
         modifier = Modifier
             .fillMaxWidth()
@@ -213,7 +219,7 @@ fun BottomSheet(reputationHistory: Vector<String>) {
         Text(
             stringResource(R.string.ShowHistoryButton),
 
-        )
+            )
     }
     // Sheet content
     if (openBottomSheet) {
@@ -295,7 +301,7 @@ fun MovingElements(finalReputation: Int, reputationHistory: Vector<String>) {
                     fos.write("".toByteArray())
 //                    current reputation
                     fos.bufferedWriter().use {
-                        bufferedWriter ->
+                            bufferedWriter ->
                         bufferedWriter.write(reputationString)
                         for (string in reputationHistory) {
                             bufferedWriter.write("\n" + string)
