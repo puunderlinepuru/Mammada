@@ -135,9 +135,6 @@ fun MammadaTrackerStaticBase(modifier: Modifier = Modifier) {
         }
     }
 
-
-
-
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -323,10 +320,11 @@ fun MovingElements(finalReputation: Int, reputationHistory: Vector<String>) {
 
                     fis.bufferedReader().use {
                             bufferedReader ->
-                        bufferedReader.forEachLine { line ->
-                            reputationHistory.add(line)
-                            println("Added Line \"$line\" to reputationHistory. It is now: $reputationHistory")
-                        }
+                        for ()
+//                        bufferedReader.forEachLine { line ->
+//                            reputationHistory.add(line)
+//                            println("Added Line \"$line\" to reputationHistory. It is now: $reputationHistory")
+//                        }
                     }
                 }
             } catch (e: IOException) {
